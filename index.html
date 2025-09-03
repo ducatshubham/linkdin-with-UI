@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LinkedIn Profile Scraper</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fab fa-linkedin"></i>
+                    <h1>LinkedIn Scraper</h1>
+                </div>
+                <div class="subtitle">
+                    <span>Universal LinkedIn Data Extractor</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="control-panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-cogs"></i> Control Panel</h2>
+                    <div class="status-indicator">
+                        <span class="status-dot" id="status-dot"></span>
+                        <span id="status-text">Ready</span>
+                    </div>
+                </div>
+
+                <div class="input-section">
+                <div class="input-group">
+                    <label for="company-url">
+                        <i class="fas fa-building"></i> Company LinkedIn URL
+                    </label>
+                    <input type="url" id="company-url" placeholder="https://www.linkedin.com/company/company-name/people/" value="">
+                    <small>Enter the LinkedIn company people page URL</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="profile-limit">
+                        <i class="fas fa-users"></i> Number of Profiles to Scrape
+                    </label>
+                    <input type="number" id="profile-limit" value="5" min="1" max="100">
+                    <small>Maximum 100 profiles per session</small>
+                </div>
+
+                <div class="input-group">
+                    <label for="delay-time">
+                        <i class="fas fa-clock"></i> Delay Between Profiles (seconds)
+                    </label>
+                    <input type="number" id="delay-time" value="5" min="3" max="15">
+                    <small>Recommended: 5-8 seconds to avoid detection</small>
+                </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" id="start-scraping">
+                        <i class="fas fa-play"></i> Start Scraping
+                    </button>
+                    <button class="btn btn-secondary" id="view-results">
+                        <i class="fas fa-table"></i> View Results
+                    </button>
+                    <button class="btn btn-outline" id="clear-data">
+                        <i class="fas fa-trash"></i> Clear Data
+                    </button>
+                </div>
+            </div>
+
+            <div class="info-panels">
+                <div class="info-panel">
+                    <div class="panel-icon">
+                        <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="panel-content">
+                        <h3>How it Works</h3>
+                        <ul>
+                            <li>Launches browser and handles LinkedIn login</li>
+                            <li>Collects profile URLs from Gameskraft people page</li>
+                            <li>Extracts detailed information from each profile</li>
+                            <li>Saves data to Excel and opens automatically</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="info-panel">
+                    <div class="panel-icon">
+                        <i class="fas fa-database"></i>
+                    </div>
+                    <div class="panel-content">
+                        <h3>Data Collected</h3>
+                        <ul>
+                            <li>Name and current position</li>
+                            <li>Location and contact info</li>
+                            <li>Educational background</li>
+                            <li>Work experience history</li>
+                            <li>Skills and competencies</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="info-panel">
+                    <div class="panel-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <div class="panel-content">
+                        <h3>Safety Features</h3>
+                        <ul>
+                            <li>Respects LinkedIn's rate limits</li>
+                            <li>Random delays to avoid detection</li>
+                            <li>Secure cookie-based authentication</li>
+                            <li>No data stored on external servers</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div class="progress-section" id="progress-section" style="display: none;">
+                <div class="progress-container">
+                    <div class="progress-header">
+                        <h3><i class="fas fa-spinner fa-spin"></i> Scraping Progress</h3>
+                        <span id="progress-text">Initializing...</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress-fill"></div>
+                    </div>
+                    <div class="progress-stats">
+                        <span id="current-profile">Profile: 0/0</span>
+                        <span id="time-remaining">Time remaining: --:--</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="results-section" id="results-section" style="display: none;">
+                <div class="results-header">
+                    <h3><i class="fas fa-chart-bar"></i> Scraping Results</h3>
+                    <button class="btn btn-small" id="export-results">
+                        <i class="fas fa-download"></i> Export Excel
+                    </button>
+                </div>
+                <div class="results-stats">
+                    <div class="stat-card">
+                        <div class="stat-number" id="total-profiles">0</div>
+                        <div class="stat-label">Total Profiles</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="developer-count">0</div>
+                        <div class="stat-label">Developers Found</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="success-rate">0%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2024 LinkedIn Profile Scraper | Built for Gameskraft Data Analysis</p>
+                <div class="footer-links">
+                    <a href="#" id="help-link">Help</a>
+                    <a href="#" id="about-link">About</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
