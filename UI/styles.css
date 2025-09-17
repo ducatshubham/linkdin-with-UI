@@ -22,6 +22,7 @@ body {
 /* Header Styles */
 .header {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 30px;
@@ -71,6 +72,7 @@ body {
 /* Control Panel */
 .control-panel {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 30px;
@@ -239,6 +241,7 @@ body {
 
 .info-panel {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 25px;
@@ -287,6 +290,7 @@ body {
 /* Progress Section */
 .progress-section {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 30px;
@@ -339,6 +343,7 @@ body {
 /* Results Section */
 .results-section {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 30px;
@@ -394,6 +399,7 @@ body {
 /* Footer */
 .footer {
     background: rgba(255, 255, 255, 0.95);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-radius: 15px;
     padding: 20px;

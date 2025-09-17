@@ -15,50 +15,23 @@ from playwright.async_api import async_playwright
 # File paths
 # -----------------------
 cookies_path = Path("cookies.json")
-output_csv = Path("linkedin_results.csv")
-
-# Constants to reduce duplication
-SCROLL_HEIGHT_JS = "document.body.scrollHeight"
-SCROLL_BY_JS = "window.scrollBy(0, {})"
-SCROLL_TO_TOP_JS = "window.scrollTo(0, 0)"
-SCROLL_TO_BOTTOM_JS = "window.scrollTo(0, document.body.scrollHeight)"
+output_csv = Path("linkedin_hr_results.csv")
 
 # -----------------------
 # Helpers
 # -----------------------
-def extract_role_from_url(search_url):
-    """Extract role/job title from LinkedIn search URL"""
-    try:
-        parsed_url = urlparse(search_url)
-        query_params = parse_qs(parsed_url.query)
-        
-        # Get keywords parameter
-        keywords = query_params.get('keywords', [''])[0]
-        if keywords:
-            # Clean and format the role name
-            role = keywords.replace('%20', ' ').replace('+', ' ').strip()
-            return role.title() if role else "Professional"
-        return "Professional"
-    except Exception:
-        return "Professional"
-
 def ask_question(prompt_text: str) -> str:
     return input(prompt_text)
 
 async def delay(ms: int):
     await asyncio.sleep(ms / 1000)
 
-def save_to_csv(rows, role_name):
-    # Use role name in filename
-    role_clean = re.sub(r'[^\w\s-]', '', role_name).strip()
-    role_clean = re.sub(r'[-\s]+', '_', role_clean)
-    output_file = Path(f"linkedin_{role_clean.lower()}_results.csv")
-    
+def save_to_csv(rows):
     headers = [
         "Name", "Title", "Location", "Education", "Profile URL",
         "Total Experience", "Experience Details", "Skills"
     ]
-    with open(output_file, "w", newline="", encoding="utf-8") as f:
+    with open(output_csv, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=headers)
         writer.writeheader()
         for r in rows:
@@ -72,8 +45,7 @@ def save_to_csv(rows, role_name):
                 "Experience Details": r.get("experience_details", "N/A"),
                 "Skills": r.get("skills", "N/A")
             })
-    print(f"✅ Data saved to {output_file}")
-    return output_file
+    print(f"✅ Data saved to {output_csv}")
 
 def open_excel(file_path):
     try:
@@ -83,24 +55,24 @@ def open_excel(file_path):
             subprocess.run(["open", file_path])
         else:
             subprocess.run(["xdg-open", file_path])
-        print("📊 Opened Excel file.")
+        print(f"📊 Opened Excel file.")
     except Exception as e:
         print(f"❌ Could not open Excel: {e}")
 
 async def auto_scroll(page, step=600, max_rounds=30, wait_ms=1500):
     """Slow incremental scroll to trigger lazy-load."""
     try:
-        last_height = await page.evaluate(f"() => {SCROLL_HEIGHT_JS}")
+        last_height = await page.evaluate("() => document.body.scrollHeight")
         rounds = 0
         while rounds < max_rounds:
             rounds += 1
-            await page.evaluate(SCROLL_BY_JS.format(step))
+            await page.evaluate(f"window.scrollBy(0, {step});")
             await page.wait_for_timeout(wait_ms)
-            new_height = await page.evaluate(f"() => {SCROLL_HEIGHT_JS}")
+            new_height = await page.evaluate("() => document.body.scrollHeight")
             if new_height == last_height:
                 await page.evaluate("window.scrollBy(0, 50);")
                 await page.wait_for_timeout(wait_ms)
-                new_height = await page.evaluate(f"() => {SCROLL_HEIGHT_JS}")
+                new_height = await page.evaluate("() => document.body.scrollHeight")
                 if new_height == last_height:
                     break
             last_height = new_height
@@ -119,8 +91,8 @@ def clean_profile_url(u: str) -> str:
         if "/in/" in path:
             if not path.endswith("/"):
                 path = path + "/"
-            clean_url = urlunparse(("https", "www.linkedin.com", path, "", "", ""))
-            return clean_url
+            clean = urlunparse(("https", "www.linkedin.com", path, "", "", ""))
+            return clean
         return u
     except Exception:
         return u
@@ -503,7 +475,7 @@ async def scrape_profile(page, profile_url):
         await page.goto(url, timeout=90000)
         await page.wait_for_load_state("domcontentloaded")
         await page.wait_for_selector("h1", timeout=15000)
-        await page.evaluate(SCROLL_TO_BOTTOM_JS)
+        await page.evaluate("window.scrollBy(0, document.body.scrollHeight)")
         await page.wait_for_timeout(4000)
 
         basic_data = await page.evaluate(r"""() => {
@@ -580,11 +552,11 @@ async def scrape_profile(page, profile_url):
         }
 
 # -----------------------
-# Collect Profile URLs from LinkedIn Search Results - DYNAMIC
+# Collect Profile URLs from LinkedIn Search Results - MODIFIED FOR SEARCH RESULTS
 # -----------------------
-async def collect_search_profile_urls(page, search_url, limit, role_name):
+async def collect_search_profile_urls(page, search_url, limit):
     profile_urls = set()
-    print(f"🔍 Starting to collect {limit} {role_name} profiles from search results: {search_url}")
+    print(f"🔍 Starting to collect {limit} profiles from search results: {search_url}")
 
     await page.goto(search_url, timeout=90000)
     await page.wait_for_load_state("domcontentloaded")
@@ -598,7 +570,7 @@ async def collect_search_profile_urls(page, search_url, limit, role_name):
         attempt += 1
         previous_count = len(profile_urls)
         
-        print(f"🔄 Collection attempt {attempt}/{max_attempts} - {role_name} profiles found: {len(profile_urls)}")
+        print(f"🔄 Collection attempt {attempt}/{max_attempts} - Profiles found: {len(profile_urls)}")
         
         await auto_scroll(page, step=1200, max_rounds=20, wait_ms=1500)
         await page.wait_for_timeout(4000)
@@ -684,7 +656,7 @@ async def collect_search_profile_urls(page, search_url, limit, role_name):
                 profile_urls.add(url)
 
         new_profiles_found = len(profile_urls) - previous_count
-        print(f"📊 Found {new_profiles_found} new {role_name} profiles. Total profiles: {len(profile_urls)}")
+        print(f"📊 Found {new_profiles_found} new profiles. Total profiles: {len(profile_urls)}")
 
         if new_profiles_found == 0:
             no_new_profiles_count += 1
@@ -693,35 +665,33 @@ async def collect_search_profile_urls(page, search_url, limit, role_name):
 
         if no_new_profiles_count >= 8:
             print("🔄 No new profiles found in recent attempts. Trying different scroll pattern...")
-            await page.evaluate(SCROLL_TO_TOP_JS)
+            await page.evaluate("window.scrollTo(0, 0)")
             await page.wait_for_timeout(4000)
-            await page.evaluate(SCROLL_TO_BOTTOM_JS)
+            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
             await page.wait_for_timeout(5000)
             no_new_profiles_count = 0
 
         if len(profile_urls) >= limit:
-            print(f"✅ Collected enough {role_name} profiles: {len(profile_urls)}")
+            print(f"✅ Collected enough profiles: {len(profile_urls)}")
             break
 
         await delay(4000 + random.randint(3000, 6000))
 
     final_list = list(profile_urls)[:limit]
-    print(f"🎯 Final collection: {len(final_list)} {role_name} profiles")
+    print(f"🎯 Final collection: {len(final_list)} profiles")
     
     return final_list
 
 # -----------------------
-# Main execution function - DYNAMIC
+# Main execution function - MODIFIED FOR SEARCH RESULTS
 # -----------------------
 async def main():
     async with async_playwright() as p:
         browser, context, page = await setup_browser(p)
 
         # Ask for LinkedIn search results URL
-        print("📝 Please provide the LinkedIn search results URL for any role/position")
-        print("Example: https://www.linkedin.com/search/results/people/?keywords=software%20engineer...")
-        print("Example: https://www.linkedin.com/search/results/people/?keywords=data%20scientist&geoUrn=%5B\"103644278\"%5D")
-        print("Example: https://www.linkedin.com/search/results/people/?keywords=product%20manager&currentCompany=%5B\"1441\"%5D")
+        print("📝 Please provide the LinkedIn search results URL with your filters")
+        print("Example: https://www.linkedin.com/search/results/people/?currentCompany=...")
         
         search_url = ask_question("🔗 Enter the LinkedIn search results URL: ").strip()
         if not search_url:
@@ -735,30 +705,26 @@ async def main():
             await browser.close()
             return
 
-        # Extract role from URL
-        role_name = extract_role_from_url(search_url)
-        print(f"🎯 Detected role: {role_name}")
-
         try:
-            limit = int(ask_question(f"🔢 How many {role_name} profiles to scrape? (default: 10): ").strip() or "10")
+            limit = int(ask_question("🔢 How many profiles to scrape? (default: 10): ").strip() or "10")
         except Exception:
             limit = 10
 
         print(f"🎯 Target URL: {search_url}")
 
         # Collect profile URLs from the search results page
-        urls = await collect_search_profile_urls(page, search_url, limit, role_name)
+        urls = await collect_search_profile_urls(page, search_url, limit)
         
         if not urls:
-            print(f"❌ No {role_name} profile URLs found. Please check the URL or search filters.")
+            print("❌ No profile URLs found. Please check the URL or search filters.")
             await browser.close()
             return
 
-        print(f"🎯 Starting to scrape {len(urls)} {role_name} profiles...")
+        print(f"🎯 Starting to scrape {len(urls)} profiles...")
         results = []
         
         for i, url in enumerate(urls, 1):
-            print(f"\n🔍 [{i}/{len(urls)}] Scraping {role_name} profile: {url}")
+            print(f"\n🔍 [{i}/{len(urls)}] Scraping: {url}")
             try:
                 profile_data = await scrape_profile(page, url)
                 results.append(profile_data)
@@ -783,27 +749,26 @@ async def main():
 
         # Save results to CSV
         if results:
-            output_file = save_to_csv(results, role_name)
-            open_excel(output_file)
+            save_to_csv(results)
+            open_excel(output_csv)
             
-            print(f"\n🎉 LinkedIn {role_name} Profile Scraping completed!")
-            print(f"📊 Total {role_name} profiles scraped: {len(results)}")
-            print(f"📁 Results saved to: {output_file}")
+            print(f"\n🎉 LinkedIn Search Scraping completed!")
+            print(f"📊 Total profiles scraped: {len(results)}")
+            print(f"📁 Results saved to: {output_csv}")
         else:
             print("❌ No data to save.")
 
         await browser.close()
 
+# -----------------------
 # Entry point
 # -----------------------
 if __name__ == "__main__":
-    print("🚀 LinkedIn Dynamic Profile Scraper")
+    print("🚀 LinkedIn Search Results Profile Scraper")
     print("=" * 60)
-    print("📝 This script works with LinkedIn search results URLs for ANY role/position")
-    print("📝 Example: https://www.linkedin.com/search/results/people/?keywords=software%20engineer...")
-    print("📝 Example: https://www.linkedin.com/search/results/people/?keywords=data%20scientist&currentCompany=...")
-    print("📝 Make sure to apply your desired filters on LinkedIn first, then copy the URL")
-    print("📝 The script will automatically detect the role from your search URL")
+    print("📝 This script works with LinkedIn search results URLs")
+    print("📝 Example: https://www.linkedin.com/search/results/people/?currentCompany=...")
+    print("📝 Make sure to apply your filters on LinkedIn first, then copy the URL")
     print("=" * 60)
     
     try:
@@ -812,5 +777,5 @@ if __name__ == "__main__":
         print("\n⏹️ Scraping interrupted by user.")
     except Exception as e:
         print(f"❌ Unexpected error: {e}")
-
-    print("\n👋 Thanks for using the LinkedIn Dynamic Profile scraper!")
+    
+    print("\n👋 Thanks for using the LinkedIn Search scraper!")
